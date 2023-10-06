@@ -1,0 +1,8 @@
+{
+    "name": "albrightlabs/sitemaprobotshumans-plugin",
+    "type": "october-plugin",
+    "description": "Automatically generates sitemap.xml, robots.txt, and humans.txt files.",
+    "require": {
+        "composer/installers": "~1.0"
+    }
+}

@@ -1,0 +1,41 @@
+# ===================================
+#  Form Field Definitions
+# ===================================
+
+tabs:
+    fields:
+        enable_sitemap:
+            label: Enable sitemap
+            description: When checked, a sitemap.xml will automatically be generated.
+            type: checkbox
+            tab: Sitemap
+        enable_robots:
+            label: Enable robots
+            description: When checked, a robots.txt file will be generated using the content provided.
+            type: checkbox
+            tab: Robots.txt
+        robots_content:
+            label: Robots content
+            type: textarea
+            size: large
+            tab: Robots.txt
+            cssClass: field-indent
+            trigger:
+                field: enable_robots
+                condition: checked
+                action: show
+        enable_humans:
+            label: Enable humans
+            description: When checked, a humans.txt file will be generated using the content provided.
+            type: checkbox
+            tab: Humans.txt
+        humans_content:
+            label: Humans content
+            type: textarea
+            size: large
+            tab: Humans.txt
+            cssClass: field-indent
+            trigger:
+                field: enable_humans
+                condition: checked
+                action: show
