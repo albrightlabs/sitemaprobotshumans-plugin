@@ -19,3 +19,6 @@
     - Added setting to toggle OFFLINE.Boxes inclusion
     - Automatic detection of OFFLINE.Boxes plugin
     - Enhanced error handling for missing plugins
+1.0.5:
+    - Removed main navigation menu item
+    - Plugin now only appears in Settings panel for cleaner admin UI
