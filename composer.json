@@ -1,8 +1,13 @@
 {
     "name": "albrightlabs/sitemaprobotshumans-plugin",
     "type": "october-plugin",
-    "description": "Automatically generates sitemap.xml, robots.txt, and humans.txt files.",
+    "description": "Automatically generates sitemap.xml, robots.txt, and humans.txt files. Compatible with RainLab.Pages and OFFLINE.Boxes.",
+    "keywords": ["octobercms", "sitemap", "robots", "humans", "seo", "rainlab-pages", "offline-boxes"],
     "require": {
         "composer/installers": "~1.0"
+    },
+    "suggest": {
+        "rainlab/pages-plugin": "Adds support for including static pages in the sitemap",
+        "offline/oc-boxes-plugin": "Adds support for including visual page builder pages in the sitemap"
     }
 }

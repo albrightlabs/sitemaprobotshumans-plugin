@@ -6,6 +6,7 @@ use Cms\Classes\Page;
 use System\Classes\PluginBase;
 use Albrightlabs\SitemapRobotsHumans\Models\Setting;
 use System\Classes\SettingsManager;
+use System\Classes\PluginManager;
 
 /**
  * Plugin Information File
@@ -52,11 +53,12 @@ class Plugin extends PluginBase
                 $pages = Page::all();
 
                 // open sitemap
-                $sitemap = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-	  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-	  xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">';
+                $sitemap = '<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">';
 
-                // adds each page to sitemap
+                // adds each CMS page to sitemap
                 foreach ($pages as $page) {
 
                     // exclude hidden pages
@@ -65,28 +67,143 @@ class Plugin extends PluginBase
                     }
 
                     // exclude sitemap-free pages
-                    if ($page->enabled_in_sitemap == 0) {
+                    if (isset($page->enabled_in_sitemap) && $page->enabled_in_sitemap == 0) {
                         continue;
                     }
 
                     // exclude any pages with specific strings in URL
                     $keywords = ['404', 'error', ':slug', 'maintenance'];
+                    $skipPage = false;
                     foreach ($keywords as $keyword) {
                         if (str_contains($page->url, $keyword)) {
-                            continue 2;
+                            $skipPage = true;
+                            break;
                         }
+                    }
+                    if ($skipPage) {
+                        continue;
                     }
 
                     // add page to sitemap
+                    $changefreq = $page->changefreq ?? 'monthly';
+                    $priority = $page->priority ?? '0.5';
                     $sitemap .= '
-<url>
-    <loc>' . $path . $page->url . '</loc>
-    <lastmod>' . date("Y-m-d", $page->mtime) . '</lastmod>
-    <changefreq>' . $page->changefreq . '</changefreq>
-    <priority>' . $page->priority . '</priority>
-</url>
-        ';
+    <url>
+        <loc>' . htmlspecialchars($path . $page->url, ENT_XML1, 'UTF-8') . '</loc>
+        <lastmod>' . date("Y-m-d", $page->mtime) . '</lastmod>
+        <changefreq>' . htmlspecialchars($changefreq, ENT_XML1, 'UTF-8') . '</changefreq>
+        <priority>' . htmlspecialchars($priority, ENT_XML1, 'UTF-8') . '</priority>
+    </url>';
 
+                }
+
+                // Check if RainLab.Pages plugin is installed, activated, and enabled in settings
+                $pluginManager = PluginManager::instance();
+                if (Setting::get('include_rainlab_pages', true) && 
+                    $pluginManager->hasPlugin('RainLab.Pages') && 
+                    !$pluginManager->isDisabled('RainLab.Pages')) {
+                    
+                    // Add static pages from RainLab.Pages
+                    $staticPages = \RainLab\Pages\Classes\Page::all();
+                    
+                    foreach ($staticPages as $staticPage) {
+                        // Skip hidden pages
+                        if ($staticPage->is_hidden == 1) {
+                            continue;
+                        }
+                        
+                        // Skip pages marked to exclude from sitemap
+                        if (isset($staticPage->navigation_hidden) && $staticPage->navigation_hidden == 1) {
+                            continue;
+                        }
+                        
+                        // Get the URL for the static page
+                        $pageUrl = \RainLab\Pages\Classes\Page::url($staticPage->fileName);
+                        
+                        if (!$pageUrl) {
+                            continue;
+                        }
+                        
+                        // Skip pages with error keywords
+                        $keywords = ['404', 'error', 'maintenance'];
+                        $skipPage = false;
+                        foreach ($keywords as $keyword) {
+                            if (str_contains($pageUrl, $keyword)) {
+                                $skipPage = true;
+                                break;
+                            }
+                        }
+                        if ($skipPage) {
+                            continue;
+                        }
+                        
+                        // Get page meta data
+                        $changefreq = $staticPage->changefreq ?? 'monthly';
+                        $priority = $staticPage->priority ?? '0.5';
+                        $lastMod = $staticPage->updated_at ?? $staticPage->created_at ?? now();
+                        
+                        // Add static page to sitemap
+                        $sitemap .= '
+    <url>
+        <loc>' . htmlspecialchars($path . $pageUrl, ENT_XML1, 'UTF-8') . '</loc>
+        <lastmod>' . date("Y-m-d", strtotime($lastMod)) . '</lastmod>
+        <changefreq>' . htmlspecialchars($changefreq, ENT_XML1, 'UTF-8') . '</changefreq>
+        <priority>' . htmlspecialchars($priority, ENT_XML1, 'UTF-8') . '</priority>
+    </url>';
+                    }
+                }
+
+                // Check if OFFLINE.Boxes plugin is installed, activated, and enabled in settings
+                if (Setting::get('include_offline_boxes', true) && 
+                    $pluginManager->hasPlugin('OFFLINE.Boxes') && 
+                    !$pluginManager->isDisabled('OFFLINE.Boxes')) {
+                    
+                    try {
+                        // Add Boxes pages
+                        $boxesPages = \OFFLINE\Boxes\Models\Page::where('is_published', true)->get();
+                        
+                        foreach ($boxesPages as $boxesPage) {
+                            // Skip if page doesn't have a URL
+                            if (empty($boxesPage->url)) {
+                                continue;
+                            }
+                            
+                            // Skip pages with error keywords
+                            $keywords = ['404', 'error', 'maintenance'];
+                            $skipPage = false;
+                            foreach ($keywords as $keyword) {
+                                if (str_contains($boxesPage->url, $keyword)) {
+                                    $skipPage = true;
+                                    break;
+                                }
+                            }
+                            if ($skipPage) {
+                                continue;
+                            }
+                            
+                            // Get page meta data
+                            $changefreq = $boxesPage->meta_changefreq ?? 'monthly';
+                            $priority = $boxesPage->meta_priority ?? '0.5';
+                            $lastMod = $boxesPage->updated_at ?? $boxesPage->created_at ?? now();
+                            
+                            // Build the full URL
+                            $pageUrl = $boxesPage->url;
+                            if (!str_starts_with($pageUrl, '/')) {
+                                $pageUrl = '/' . $pageUrl;
+                            }
+                            
+                            // Add Boxes page to sitemap
+                            $sitemap .= '
+    <url>
+        <loc>' . htmlspecialchars($path . $pageUrl, ENT_XML1, 'UTF-8') . '</loc>
+        <lastmod>' . date("Y-m-d", strtotime($lastMod)) . '</lastmod>
+        <changefreq>' . htmlspecialchars($changefreq, ENT_XML1, 'UTF-8') . '</changefreq>
+        <priority>' . htmlspecialchars($priority, ENT_XML1, 'UTF-8') . '</priority>
+    </url>';
+                        }
+                    } catch (\Exception $e) {
+                        // Silently skip if Boxes plugin classes are not available
+                    }
                 }
 
                 // close sitemap
@@ -100,17 +217,17 @@ class Plugin extends PluginBase
         // generates and returns a robots.txt file, if enabled
         if (Setting::get('enable_robots', false)) {
             Route::get('robots.txt', function () {
-                header("Content-Type: text/plain");
-                print_r("User-agent: *\r\n");
-                print_r(Setting::get('robots_content', ''));
+                $content = "User-agent: *\r\n";
+                $content .= e(Setting::get('robots_content', ''));
+                return Response::make($content)->header('Content-Type', 'text/plain');
             });
         }
 
         // generates and returns a humans.txt file, if enabled
         if (Setting::get('enable_humans', false)) {
             Route::get('humans.txt', function () {
-                header("Content-Type: text/plain");
-                print_r(Setting::get('humans_content', ''));
+                $content = e(Setting::get('humans_content', ''));
+                return Response::make($content)->header('Content-Type', 'text/plain');
             });
         }
 

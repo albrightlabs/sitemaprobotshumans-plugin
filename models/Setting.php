@@ -1,9 +1,12 @@
 <?php namespace Albrightlabs\SitemapRobotsHumans\Models;
 
 use Model;
+use October\Rain\Database\Traits\Validation;
 
 class Setting extends Model
 {
+    use Validation;
+
     /**
      * @var array implement these behaviors
      */
@@ -20,4 +23,20 @@ class Setting extends Model
      * @var string settingsFields configuration
      */
     public $settingsFields = 'fields.yaml';
+
+    /**
+     * @var array Validation rules
+     */
+    public $rules = [
+        'robots_content' => 'nullable|string|max:5000',
+        'humans_content' => 'nullable|string|max:5000'
+    ];
+
+    /**
+     * @var array Attribute names for validation errors
+     */
+    public $attributeNames = [
+        'robots_content' => 'Robots.txt content',
+        'humans_content' => 'Humans.txt content'
+    ];
 }

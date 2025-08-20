@@ -1,0 +1,26 @@
+plugin:
+    name: 'albrightlabs.sitemaprobotshumans::lang.plugin.name'
+    description: 'albrightlabs.sitemaprobotshumans::lang.plugin.description'
+    author: 'Albright Labs LLC'
+    icon: oc-icon-sitemap
+    homepage: 'https://albrightlabs.com'
+
+navigation:
+    main-menu-item:
+        label: 'Sitemap, Robots, Humans'
+        url: system/settings/update/albrightlabs/sitemaprobotshumans/settings
+        icon: icon-sitemap
+        permissions:
+            - albrightlabs.sitemaprobotshumans.access_settings
+        sideMenu:
+            settings:
+                label: Settings
+                icon: icon-cog
+                url: system/settings/update/albrightlabs/sitemaprobotshumans/settings
+                permissions:
+                    - albrightlabs.sitemaprobotshumans.access_settings
+
+permissions:
+    albrightlabs.sitemaprobotshumans.access_settings:
+        tab: 'Sitemap, Robots, Humans'
+        label: 'Manage sitemap, robots, and humans settings'

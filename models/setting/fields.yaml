@@ -9,6 +9,26 @@ tabs:
             description: When checked, a sitemap.xml will automatically be generated.
             type: checkbox
             tab: Sitemap
+        include_rainlab_pages:
+            label: Include RainLab.Pages static pages
+            description: When checked, static pages from RainLab.Pages plugin will be included in the sitemap (if plugin is installed).
+            type: checkbox
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_sitemap
+                condition: checked
+                action: show
+        include_offline_boxes:
+            label: Include OFFLINE.Boxes pages
+            description: When checked, pages from OFFLINE.Boxes plugin will be included in the sitemap (if plugin is installed).
+            type: checkbox
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_sitemap
+                condition: checked
+                action: show
         enable_robots:
             label: Enable robots
             description: When checked, a robots.txt file will be generated using the content provided.

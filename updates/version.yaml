@@ -1,1 +1,21 @@
-v1.0.1: First version of Sitemap Robots Humans
+1.0.1: First version of Sitemap Robots Humans
+1.0.2: 
+    - Fixed security vulnerabilities
+    - Added proper response handling
+    - Added content sanitization
+    - Added validation rules
+    - Updated for October CMS 3.x compatibility
+    - Added plugin.yaml for marketplace
+    - Improved XML formatting
+    - Added null safety checks
+1.0.3:
+    - Added full RainLab.Pages compatibility
+    - Static pages now included in sitemap.xml
+    - Added setting to toggle RainLab.Pages inclusion
+    - Automatic detection of RainLab.Pages plugin
+1.0.4:
+    - Added OFFLINE.Boxes plugin compatibility
+    - Visual page builder pages now included in sitemap.xml
+    - Added setting to toggle OFFLINE.Boxes inclusion
+    - Automatic detection of OFFLINE.Boxes plugin
+    - Enhanced error handling for missing plugins

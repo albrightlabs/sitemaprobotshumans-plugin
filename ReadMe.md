@@ -1,11 +1,19 @@
 
 # 📃 Sitemap Robots Humans Plugin
 
-### 🚨 Requires OctoberCMS 2.0
+### 🚨 Requires OctoberCMS 3.0+
 
 ## ✨ What does this plugin do?
 Provides a sitemap.xml, robots.txt, and humans.txt file for a website.
 Website managers can install this plugin and go to Settings > Sitemap, Robots, Humans to enable/disable each file and set the robots.txt and humans.txt content.
+
+### 🔌 Plugin Compatibility
+This plugin is fully compatible with popular page builder plugins:
+
+- **RainLab.Pages**: Static pages will automatically be included in your sitemap.xml
+- **OFFLINE.Boxes**: Visual page builder pages will automatically be included in your sitemap.xml
+
+Both integrations can be toggled on/off in the plugin settings.
 
 ## ❓ Why would I use this plugin?
 Save time by not having to generate a sitemap.xml file for the website or worry about changing it each time a page is added or updated.
