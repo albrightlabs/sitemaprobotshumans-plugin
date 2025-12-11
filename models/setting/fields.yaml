@@ -82,6 +82,18 @@ tabs:
                             weekly: Weekly
                             monthly: Monthly
                             yearly: Yearly
+        excluded_urls:
+            label: Excluded URLs
+            commentAbove: Enter URL patterns to exclude from the sitemap (one per line). Supports partial matching.
+            type: textarea
+            size: small
+            tab: Sitemap
+            cssClass: field-indent
+            placeholder: "/private\n/admin\n/preview"
+            trigger:
+                field: enable_sitemap
+                condition: checked
+                action: show
         enable_robots:
             label: Enable robots
             description: When checked, a robots.txt file will be generated using the content provided.

@@ -45,6 +45,32 @@ class Plugin extends PluginBase
         // generates and returns sitemap index and pages sitemap, if enabled
         if (Setting::get('enable_sitemap', false)) {
 
+            // Helper function to check if URL should be excluded
+            $shouldExcludeUrl = function($url) {
+                // Default keywords to exclude
+                $defaultKeywords = ['404', 'error', 'maintenance'];
+
+                // Check default keywords
+                foreach ($defaultKeywords as $keyword) {
+                    if (str_contains($url, $keyword)) {
+                        return true;
+                    }
+                }
+
+                // Check user-defined exclusions
+                $excludedUrls = Setting::get('excluded_urls', '');
+                if (!empty($excludedUrls)) {
+                    $patterns = array_filter(array_map('trim', explode("\n", $excludedUrls)));
+                    foreach ($patterns as $pattern) {
+                        if (!empty($pattern) && str_contains($url, $pattern)) {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            };
+
             // /sitemap.xml - Sitemap INDEX referencing child sitemaps
             Route::get('/sitemap.xml', function () {
                 $path = url('/');
@@ -100,16 +126,8 @@ class Plugin extends PluginBase
                         continue;
                     }
 
-                    // exclude any pages with specific strings in URL
-                    $keywords = ['404', 'error', ':slug', 'maintenance'];
-                    $skipPage = false;
-                    foreach ($keywords as $keyword) {
-                        if (str_contains($page->url, $keyword)) {
-                            $skipPage = true;
-                            break;
-                        }
-                    }
-                    if ($skipPage) {
+                    // exclude dynamic pages and URLs matching exclusion patterns
+                    if (str_contains($page->url, ':slug') || $shouldExcludeUrl($page->url)) {
                         continue;
                     }
 
@@ -153,16 +171,8 @@ class Plugin extends PluginBase
                             continue;
                         }
 
-                        // Skip pages with error keywords
-                        $keywords = ['404', 'error', 'maintenance'];
-                        $skipPage = false;
-                        foreach ($keywords as $keyword) {
-                            if (str_contains($pageUrl, $keyword)) {
-                                $skipPage = true;
-                                break;
-                            }
-                        }
-                        if ($skipPage) {
+                        // Skip pages matching exclusion patterns
+                        if ($shouldExcludeUrl($pageUrl)) {
                             continue;
                         }
 
@@ -197,16 +207,8 @@ class Plugin extends PluginBase
                                 continue;
                             }
 
-                            // Skip pages with error keywords
-                            $keywords = ['404', 'error', 'maintenance'];
-                            $skipPage = false;
-                            foreach ($keywords as $keyword) {
-                                if (str_contains($boxesPage->url, $keyword)) {
-                                    $skipPage = true;
-                                    break;
-                                }
-                            }
-                            if ($skipPage) {
+                            // Skip pages matching exclusion patterns
+                            if ($shouldExcludeUrl($boxesPage->url)) {
                                 continue;
                             }
 
@@ -248,6 +250,12 @@ class Plugin extends PluginBase
 
                         foreach ($entries as $entry) {
                             $pageUrl = rtrim($config['url_prefix'], '/') . '/' . $entry->slug;
+
+                            // Skip entries matching exclusion patterns
+                            if ($shouldExcludeUrl($pageUrl)) {
+                                continue;
+                            }
+
                             $lastMod = $entry->updated_at ?? $entry->created_at ?? now();
                             $priority = $config['priority'] ?? '0.6';
                             $changefreq = $config['changefreq'] ?? 'monthly';

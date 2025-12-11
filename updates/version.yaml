@@ -31,3 +31,7 @@
     - Per-section URL prefix, priority, and change frequency settings
 1.0.8:
     - UI Updates
+1.0.9:
+    - Added URL exclusion feature - exclude specific URLs or patterns from sitemap
+    - Configurable exclusion patterns in Sitemap settings
+    - Exclusions apply to all page types (CMS, RainLab.Pages, OFFLINE.Boxes, Tailor)
