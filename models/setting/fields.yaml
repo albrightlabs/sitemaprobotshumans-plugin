@@ -29,6 +29,28 @@ tabs:
                 field: enable_sitemap
                 condition: checked
                 action: show
+        blog_sitemap_url:
+            label: Blog Sitemap URL
+            description: The URL path to your blog's sitemap (relative to domain). Leave empty to exclude from sitemap index.
+            type: text
+            default: /blog/sitemap_index.xml
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_sitemap
+                condition: checked
+                action: show
+        include_tailor_casestudies:
+            label: Include Tailor Case Studies
+            description: When checked, case study entries from Tailor will be included in the sitemap.
+            type: checkbox
+            default: true
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_sitemap
+                condition: checked
+                action: show
         enable_robots:
             label: Enable robots
             description: When checked, a robots.txt file will be generated using the content provided.

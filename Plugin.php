@@ -42,9 +42,38 @@ class Plugin extends PluginBase
     public function boot()
     {
 
-        // generates and returns sitemap, if enabled
+        // generates and returns sitemap index and pages sitemap, if enabled
         if (Setting::get('enable_sitemap', false)) {
+
+            // /sitemap.xml - Sitemap INDEX referencing child sitemaps
             Route::get('/sitemap.xml', function () {
+                $path = url('/');
+                $blogSitemapUrl = Setting::get('blog_sitemap_url', '/blog/sitemap_index.xml');
+
+                $sitemap = '<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <sitemap>
+        <loc>' . htmlspecialchars($path . '/sitemap_pages.xml', ENT_XML1, 'UTF-8') . '</loc>
+        <lastmod>' . date('Y-m-d') . '</lastmod>
+    </sitemap>';
+
+                // Only include blog sitemap if URL is configured
+                if (!empty($blogSitemapUrl)) {
+                    $sitemap .= '
+    <sitemap>
+        <loc>' . htmlspecialchars($path . $blogSitemapUrl, ENT_XML1, 'UTF-8') . '</loc>
+        <lastmod>' . date('Y-m-d') . '</lastmod>
+    </sitemap>';
+                }
+
+                $sitemap .= '
+</sitemapindex>';
+
+                return Response::make($sitemap)->header('Content-Type', 'application/xml');
+            });
+
+            // /sitemap_pages.xml - Pages urlset with all CMS pages
+            Route::get('/sitemap_pages.xml', function () {
 
                 // retrieve website base url
                 $path = url('/');
@@ -99,31 +128,31 @@ class Plugin extends PluginBase
 
                 // Check if RainLab.Pages plugin is installed, activated, and enabled in settings
                 $pluginManager = PluginManager::instance();
-                if (Setting::get('include_rainlab_pages', true) && 
-                    $pluginManager->hasPlugin('RainLab.Pages') && 
+                if (Setting::get('include_rainlab_pages', true) &&
+                    $pluginManager->hasPlugin('RainLab.Pages') &&
                     !$pluginManager->isDisabled('RainLab.Pages')) {
-                    
+
                     // Add static pages from RainLab.Pages
                     $staticPages = \RainLab\Pages\Classes\Page::all();
-                    
+
                     foreach ($staticPages as $staticPage) {
                         // Skip hidden pages
                         if ($staticPage->is_hidden == 1) {
                             continue;
                         }
-                        
+
                         // Skip pages marked to exclude from sitemap
                         if (isset($staticPage->navigation_hidden) && $staticPage->navigation_hidden == 1) {
                             continue;
                         }
-                        
+
                         // Get the URL for the static page
                         $pageUrl = \RainLab\Pages\Classes\Page::url($staticPage->fileName);
-                        
+
                         if (!$pageUrl) {
                             continue;
                         }
-                        
+
                         // Skip pages with error keywords
                         $keywords = ['404', 'error', 'maintenance'];
                         $skipPage = false;
@@ -136,12 +165,12 @@ class Plugin extends PluginBase
                         if ($skipPage) {
                             continue;
                         }
-                        
+
                         // Get page meta data
                         $changefreq = $staticPage->changefreq ?? 'monthly';
                         $priority = $staticPage->priority ?? '0.5';
                         $lastMod = $staticPage->updated_at ?? $staticPage->created_at ?? now();
-                        
+
                         // Add static page to sitemap
                         $sitemap .= '
     <url>
@@ -154,20 +183,20 @@ class Plugin extends PluginBase
                 }
 
                 // Check if OFFLINE.Boxes plugin is installed, activated, and enabled in settings
-                if (Setting::get('include_offline_boxes', true) && 
-                    $pluginManager->hasPlugin('OFFLINE.Boxes') && 
+                if (Setting::get('include_offline_boxes', true) &&
+                    $pluginManager->hasPlugin('OFFLINE.Boxes') &&
                     !$pluginManager->isDisabled('OFFLINE.Boxes')) {
-                    
+
                     try {
                         // Add Boxes pages
                         $boxesPages = \OFFLINE\Boxes\Models\Page::where('is_published', true)->get();
-                        
+
                         foreach ($boxesPages as $boxesPage) {
                             // Skip if page doesn't have a URL
                             if (empty($boxesPage->url)) {
                                 continue;
                             }
-                            
+
                             // Skip pages with error keywords
                             $keywords = ['404', 'error', 'maintenance'];
                             $skipPage = false;
@@ -180,18 +209,18 @@ class Plugin extends PluginBase
                             if ($skipPage) {
                                 continue;
                             }
-                            
+
                             // Get page meta data
                             $changefreq = $boxesPage->meta_changefreq ?? 'monthly';
                             $priority = $boxesPage->meta_priority ?? '0.5';
                             $lastMod = $boxesPage->updated_at ?? $boxesPage->created_at ?? now();
-                            
+
                             // Build the full URL
                             $pageUrl = $boxesPage->url;
                             if (!str_starts_with($pageUrl, '/')) {
                                 $pageUrl = '/' . $pageUrl;
                             }
-                            
+
                             // Add Boxes page to sitemap
                             $sitemap .= '
     <url>
@@ -206,8 +235,33 @@ class Plugin extends PluginBase
                     }
                 }
 
+                // Add Tailor casestudies entries if enabled
+                if (Setting::get('include_tailor_casestudies', true)) {
+                    try {
+                        $caseStudies = \Tailor\Models\EntryRecord::inSection('casestudies')
+                            ->where('is_enabled', true)
+                            ->get();
+
+                        foreach ($caseStudies as $study) {
+                            $pageUrl = '/case-studies/' . $study->slug;
+                            $lastMod = $study->updated_at ?? $study->created_at ?? now();
+
+                            $sitemap .= '
+    <url>
+        <loc>' . htmlspecialchars($path . $pageUrl, ENT_XML1, 'UTF-8') . '</loc>
+        <lastmod>' . date("Y-m-d", strtotime($lastMod)) . '</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>';
+                        }
+                    } catch (\Exception $e) {
+                        // Silently skip if Tailor is not available or casestudies blueprint doesn't exist
+                    }
+                }
+
                 // close sitemap
-                $sitemap .= '</urlset>';
+                $sitemap .= '
+</urlset>';
 
                 // show sitemap
                 return Response::make($sitemap)->header('Content-Type', 'application/xml');
@@ -249,6 +303,17 @@ class Plugin extends PluginBase
                 'order' => 500,
                 'keywords' => 'sitemap robots humans'
             ]
+        ];
+    }
+
+    /**
+     * @return array
+     * Register components
+     */
+    public function registerComponents()
+    {
+        return [
+            \Albrightlabs\SitemapRobotsHumans\Components\Sitemap::class => 'sitemap'
         ];
     }
 
