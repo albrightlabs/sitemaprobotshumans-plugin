@@ -235,27 +235,33 @@ class Plugin extends PluginBase
                     }
                 }
 
-                // Add Tailor casestudies entries if enabled
-                if (Setting::get('include_tailor_casestudies', true)) {
+                // Add Tailor section entries if configured
+                $tailorSections = Setting::get('tailor_sections', []);
+                foreach ($tailorSections as $config) {
+                    if (empty($config['section_handle']) || empty($config['url_prefix'])) {
+                        continue;
+                    }
                     try {
-                        $caseStudies = \Tailor\Models\EntryRecord::inSection('casestudies')
+                        $entries = \Tailor\Models\EntryRecord::inSection($config['section_handle'])
                             ->where('is_enabled', true)
                             ->get();
 
-                        foreach ($caseStudies as $study) {
-                            $pageUrl = '/case-studies/' . $study->slug;
-                            $lastMod = $study->updated_at ?? $study->created_at ?? now();
+                        foreach ($entries as $entry) {
+                            $pageUrl = rtrim($config['url_prefix'], '/') . '/' . $entry->slug;
+                            $lastMod = $entry->updated_at ?? $entry->created_at ?? now();
+                            $priority = $config['priority'] ?? '0.6';
+                            $changefreq = $config['changefreq'] ?? 'monthly';
 
                             $sitemap .= '
     <url>
         <loc>' . htmlspecialchars($path . $pageUrl, ENT_XML1, 'UTF-8') . '</loc>
         <lastmod>' . date("Y-m-d", strtotime($lastMod)) . '</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.6</priority>
+        <changefreq>' . $changefreq . '</changefreq>
+        <priority>' . $priority . '</priority>
     </url>';
                         }
                     } catch (\Exception $e) {
-                        // Silently skip if Tailor is not available or casestudies blueprint doesn't exist
+                        // Section not found or Tailor unavailable - skip silently
                     }
                 }
 

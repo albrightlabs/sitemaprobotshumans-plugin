@@ -40,17 +40,48 @@ tabs:
                 field: enable_sitemap
                 condition: checked
                 action: show
-        include_tailor_casestudies:
-            label: Include Tailor Case Studies
-            description: When checked, case study entries from Tailor will be included in the sitemap.
-            type: checkbox
-            default: true
+        tailor_sections:
+            label: Tailor Sections
+            comment: Configure which Tailor sections to include in the sitemap
+            type: repeater
             tab: Sitemap
             cssClass: field-indent
             trigger:
                 field: enable_sitemap
                 condition: checked
                 action: show
+            form:
+                fields:
+                    section_handle:
+                        label: Section
+                        type: dropdown
+                        span: left
+                    url_prefix:
+                        label: URL Prefix
+                        type: text
+                        placeholder: /blog/
+                        span: right
+                    priority:
+                        label: Priority
+                        type: dropdown
+                        default: '0.6'
+                        span: left
+                        options:
+                            '1.0': '1.0 (Highest)'
+                            '0.8': '0.8'
+                            '0.6': '0.6 (Default)'
+                            '0.4': '0.4'
+                            '0.2': '0.2 (Lowest)'
+                    changefreq:
+                        label: Change Frequency
+                        type: dropdown
+                        default: monthly
+                        span: right
+                        options:
+                            daily: Daily
+                            weekly: Weekly
+                            monthly: Monthly
+                            yearly: Yearly
         enable_robots:
             label: Enable robots
             description: When checked, a robots.txt file will be generated using the content provided.

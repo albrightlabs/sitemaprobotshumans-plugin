@@ -25,3 +25,7 @@
 1.0.6:
     - Adds Tailor support
     - Adds support for sub-site sitemap
+1.0.7:
+    - Dynamic Tailor section support - configure any Tailor section for sitemap inclusion
+    - Replaced hardcoded case studies with configurable repeater
+    - Per-section URL prefix, priority, and change frequency settings

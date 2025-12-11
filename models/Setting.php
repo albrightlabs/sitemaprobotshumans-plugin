@@ -39,4 +39,21 @@ class Setting extends Model
         'robots_content' => 'Robots.txt content',
         'humans_content' => 'Humans.txt content'
     ];
+
+    /**
+     * Get available Tailor sections for dropdown
+     */
+    public function getSectionHandleOptions()
+    {
+        $options = [];
+        try {
+            $sections = \Tailor\Classes\BlueprintIndexer::instance()->listSections();
+            foreach ($sections as $section) {
+                $options[$section->handle] = $section->name . ' (' . $section->handle . ')';
+            }
+        } catch (\Exception $e) {
+            // Tailor not available
+        }
+        return $options;
+    }
 }
