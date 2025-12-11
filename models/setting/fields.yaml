@@ -42,7 +42,7 @@ tabs:
                 action: show
         tailor_sections:
             label: Tailor Sections
-            comment: Configure which Tailor sections to include in the sitemap
+            commentAbove: Configure which Tailor sections to include in the sitemap
             type: repeater
             tab: Sitemap
             cssClass: field-indent

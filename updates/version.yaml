@@ -29,3 +29,5 @@
     - Dynamic Tailor section support - configure any Tailor section for sitemap inclusion
     - Replaced hardcoded case studies with configurable repeater
     - Per-section URL prefix, priority, and change frequency settings
+1.0.8:
+    - UI Updates
