@@ -36,4 +36,4 @@
     - Configurable exclusion patterns in Sitemap settings
     - Exclusions apply to all page types (CMS, RainLab.Pages, OFFLINE.Boxes, Tailor)
 1.0.10:
-    - Bugfix: Fixed closure scoping issue with URL exclusion helper function
+    - Fixed closure scoping issue with URL exclusion helper function
