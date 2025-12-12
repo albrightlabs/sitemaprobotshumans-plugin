@@ -99,7 +99,7 @@ class Plugin extends PluginBase
             });
 
             // /sitemap_pages.xml - Pages urlset with all CMS pages
-            Route::get('/sitemap_pages.xml', function () {
+            Route::get('/sitemap_pages.xml', function () use ($shouldExcludeUrl) {
 
                 // retrieve website base url
                 $path = url('/');
