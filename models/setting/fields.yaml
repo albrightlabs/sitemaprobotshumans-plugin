@@ -89,7 +89,6 @@ tabs:
             size: small
             tab: Sitemap
             cssClass: field-indent
-            placeholder: "/private\n/admin\n/preview"
             trigger:
                 field: enable_sitemap
                 condition: checked
