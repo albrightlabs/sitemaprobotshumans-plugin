@@ -238,6 +238,86 @@ class Plugin extends PluginBase
                     }
                 }
 
+                // Add RainLab.Blog / AlbrightLabs.Blog posts and categories if enabled.
+                // Auto-detects which blog plugin is installed; works with either natively.
+                if (Setting::get('enable_blog_posts', false)) {
+                    $blogPostModel = null;
+                    $blogCategoryModel = null;
+
+                    if ($pluginManager->hasPlugin('RainLab.Blog') && !$pluginManager->isDisabled('RainLab.Blog')) {
+                        $blogPostModel = '\\RainLab\\Blog\\Models\\Post';
+                        $blogCategoryModel = '\\RainLab\\Blog\\Models\\Category';
+                    }
+                    elseif ($pluginManager->hasPlugin('AlbrightLabs.Blog') && !$pluginManager->isDisabled('AlbrightLabs.Blog')) {
+                        $blogPostModel = '\\AlbrightLabs\\Blog\\Models\\Post';
+                        $blogCategoryModel = '\\AlbrightLabs\\Blog\\Models\\Category';
+                    }
+
+                    if ($blogPostModel && class_exists($blogPostModel)) {
+                        $postPrefix = Setting::get('blog_post_url_prefix', '/blog');
+                        $priority = Setting::get('blog_priority', '0.6');
+                        $changefreq = Setting::get('blog_changefreq', 'weekly');
+
+                        try {
+                            $posts = $blogPostModel::where('published', 1)->get();
+
+                            foreach ($posts as $post) {
+                                if (empty($post->slug)) {
+                                    continue;
+                                }
+                                $pageUrl = rtrim($postPrefix, '/') . '/' . $post->slug;
+
+                                if ($shouldExcludeUrl($pageUrl)) {
+                                    continue;
+                                }
+
+                                $lastMod = $post->updated_at ?? $post->published_at ?? now();
+                                $sitemap .= '
+    <url>
+        <loc>' . htmlspecialchars($path . $pageUrl, ENT_XML1, 'UTF-8') . '</loc>
+        <lastmod>' . date("Y-m-d", strtotime($lastMod)) . '</lastmod>
+        <changefreq>' . htmlspecialchars($changefreq, ENT_XML1, 'UTF-8') . '</changefreq>
+        <priority>' . htmlspecialchars($priority, ENT_XML1, 'UTF-8') . '</priority>
+    </url>';
+                            }
+                        }
+                        catch (\Exception $e) {
+                            // Blog table or plugin not ready - skip silently.
+                        }
+
+                        if (Setting::get('enable_blog_categories', false) && $blogCategoryModel && class_exists($blogCategoryModel)) {
+                            $categoryPrefix = Setting::get('blog_category_url_prefix', '/blog/category');
+
+                            try {
+                                $categories = $blogCategoryModel::all();
+
+                                foreach ($categories as $category) {
+                                    if (empty($category->slug)) {
+                                        continue;
+                                    }
+                                    $pageUrl = rtrim($categoryPrefix, '/') . '/' . $category->slug;
+
+                                    if ($shouldExcludeUrl($pageUrl)) {
+                                        continue;
+                                    }
+
+                                    $lastMod = $category->updated_at ?? $category->created_at ?? now();
+                                    $sitemap .= '
+    <url>
+        <loc>' . htmlspecialchars($path . $pageUrl, ENT_XML1, 'UTF-8') . '</loc>
+        <lastmod>' . date("Y-m-d", strtotime($lastMod)) . '</lastmod>
+        <changefreq>' . htmlspecialchars($changefreq, ENT_XML1, 'UTF-8') . '</changefreq>
+        <priority>' . htmlspecialchars($priority, ENT_XML1, 'UTF-8') . '</priority>
+    </url>';
+                                }
+                            }
+                            catch (\Exception $e) {
+                                // Category table not ready - skip silently.
+                            }
+                        }
+                    }
+                }
+
                 // Add Tailor section entries if configured
                 $tailorSections = Setting::get('tailor_sections', []);
                 foreach ($tailorSections as $config) {

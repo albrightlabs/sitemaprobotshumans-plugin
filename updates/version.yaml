@@ -43,3 +43,8 @@
     - Curated markdown index with configurable section groupings by URL prefix
     - Full page content rendered to markdown with HTML stripping, entity decoding, responsive mobile/desktop deduplication, and configurable cache TTL
     - Requires league/html-to-markdown ^5.1
+1.2.0:
+    - Added native support for RainLab.Blog and AlbrightLabs.Blog posts and categories in the sitemap
+    - Auto-detects which blog plugin is installed; no configuration needed beyond URL prefix
+    - Separate toggles for posts vs categories, configurable priority and change frequency
+    - Cleared the legacy WordPress /blog/sitemap_index.xml default on External Blog Sitemap URL; existing installs keep their configured value

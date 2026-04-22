@@ -30,10 +30,10 @@ tabs:
                 condition: checked
                 action: show
         blog_sitemap_url:
-            label: Blog Sitemap URL
-            description: The URL path to your blog's sitemap (relative to domain). Leave empty to exclude from sitemap index.
+            label: External Blog Sitemap URL
+            description: Only needed if your blog runs on a separate platform (e.g. WordPress) that produces its own sitemap. Leave empty in most cases - the options below generate blog URLs natively.
             type: text
-            default: /blog/sitemap_index.xml
+            default: ''
             tab: Sitemap
             cssClass: field-indent
             trigger:
@@ -91,6 +91,81 @@ tabs:
             cssClass: field-indent
             trigger:
                 field: enable_sitemap
+                condition: checked
+                action: show
+        enable_blog_posts:
+            label: Include RainLab Blog posts
+            description: When checked, published blog posts will be included in the sitemap. Supports RainLab.Blog and AlbrightLabs.Blog - the first installed plugin is used automatically.
+            type: checkbox
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_sitemap
+                condition: checked
+                action: show
+        blog_post_url_prefix:
+            label: Blog post URL prefix
+            description: URL path for blog posts. Posts appear at {prefix}/{slug}. Default is /blog which matches the AlbrightLabs.Blog URL pattern; use /blog/post for the RainLab.Blog default.
+            type: text
+            default: /blog
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_blog_posts
+                condition: checked
+                action: show
+        enable_blog_categories:
+            label: Include RainLab Blog categories
+            description: When checked, blog category pages are also added to the sitemap.
+            type: checkbox
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_blog_posts
+                condition: checked
+                action: show
+        blog_category_url_prefix:
+            label: Blog category URL prefix
+            description: URL path for blog categories. Categories appear at {prefix}/{slug}.
+            type: text
+            default: /blog/category
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_blog_categories
+                condition: checked
+                action: show
+        blog_priority:
+            label: Blog priority
+            type: dropdown
+            default: '0.6'
+            span: left
+            tab: Sitemap
+            cssClass: field-indent
+            options:
+                '1.0': '1.0 (Highest)'
+                '0.8': '0.8'
+                '0.6': '0.6 (Default)'
+                '0.4': '0.4'
+                '0.2': '0.2 (Lowest)'
+            trigger:
+                field: enable_blog_posts
+                condition: checked
+                action: show
+        blog_changefreq:
+            label: Blog change frequency
+            type: dropdown
+            default: weekly
+            span: right
+            tab: Sitemap
+            cssClass: field-indent
+            options:
+                daily: Daily
+                weekly: Weekly
+                monthly: Monthly
+                yearly: Yearly
+            trigger:
+                field: enable_blog_posts
                 condition: checked
                 action: show
         enable_robots:
