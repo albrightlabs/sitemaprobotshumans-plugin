@@ -37,3 +37,9 @@
     - Exclusions apply to all page types (CMS, RainLab.Pages, OFFLINE.Boxes, Tailor)
 1.0.10:
     - Fixed closure scoping issue with URL exclusion helper function
+1.1.0:
+    - Added /llms.txt and /llms-full.txt routes for AI discovery
+    - New "LLMs.txt" and "LLMs-full.txt" settings tabs with per-page opt-in via enabled_in_llms frontmatter directive
+    - Curated markdown index with configurable section groupings by URL prefix
+    - Full page content rendered to markdown with HTML stripping, entity decoding, responsive mobile/desktop deduplication, and configurable cache TTL
+    - Requires league/html-to-markdown ^5.1

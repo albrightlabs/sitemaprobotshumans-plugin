@@ -123,3 +123,63 @@ tabs:
                 field: enable_humans
                 condition: checked
                 action: show
+        enable_llms:
+            label: Enable llms.txt
+            description: When checked, a curated markdown index will be generated at /llms.txt for AI crawlers.
+            type: checkbox
+            tab: LLMs.txt
+        llms_summary:
+            label: Summary blockquote
+            commentAbove: One-sentence site summary rendered as the blockquote beneath the H1.
+            type: textarea
+            size: small
+            tab: LLMs.txt
+            cssClass: field-indent
+            trigger:
+                field: enable_llms
+                condition: checked
+                action: show
+        llms_sections:
+            label: Section grouping
+            commentAbove: Optional. Group index links by URL prefix. Pages not matching any prefix fall under "Pages".
+            type: repeater
+            tab: LLMs.txt
+            cssClass: field-indent
+            trigger:
+                field: enable_llms
+                condition: checked
+                action: show
+            form:
+                fields:
+                    label:
+                        label: Section label
+                        type: text
+                        span: left
+                    url_prefix:
+                        label: URL prefix
+                        type: text
+                        placeholder: /services
+                        span: right
+        enable_llms_full:
+            label: Enable llms-full.txt
+            description: When checked, full page content will be rendered as markdown at /llms-full.txt.
+            type: checkbox
+            tab: LLMs-full.txt
+        llms_full_content_selector:
+            label: Content selector
+            description: CSS selector (tag, #id, or .class) identifying the main content region of each page. Defaults to "main".
+            type: text
+            default: main
+            tab: LLMs-full.txt
+            cssClass: field-indent
+            trigger:
+                field: enable_llms_full
+                condition: checked
+                action: show
+        llms_cache_ttl:
+            label: Cache TTL (seconds)
+            description: How long generated llms.txt / llms-full.txt output is cached. Default 3600 (1 hour).
+            type: number
+            default: 3600
+            tab: LLMs-full.txt
+            cssClass: field-indent

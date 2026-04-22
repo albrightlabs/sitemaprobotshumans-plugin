@@ -1,6 +1,7 @@
 <?php namespace Albrightlabs\SitemapRobotsHumans;
 
 use Route;
+use Cache;
 use Response;
 use Cms\Classes\Page;
 use System\Classes\PluginBase;
@@ -296,6 +297,28 @@ class Plugin extends PluginBase
             Route::get('humans.txt', function () {
                 $content = e(Setting::get('humans_content', ''));
                 return Response::make($content)->header('Content-Type', 'text/plain');
+            });
+        }
+
+        // generates and returns /llms.txt — a curated markdown index for AI discovery
+        if (Setting::get('enable_llms', false)) {
+            Route::get('/llms.txt', function () {
+                $ttl = (int) Setting::get('llms_cache_ttl', 3600);
+                $content = Cache::remember('llms_txt_index', $ttl, function () {
+                    return \Albrightlabs\SitemapRobotsHumans\Classes\LlmsGenerator::generateIndex();
+                });
+                return Response::make($content)->header('Content-Type', 'text/plain; charset=utf-8');
+            });
+        }
+
+        // generates and returns /llms-full.txt — full page content as markdown
+        if (Setting::get('enable_llms_full', false)) {
+            Route::get('/llms-full.txt', function () {
+                $ttl = (int) Setting::get('llms_cache_ttl', 3600);
+                $content = Cache::remember('llms_txt_full', $ttl, function () {
+                    return \Albrightlabs\SitemapRobotsHumans\Classes\LlmsGenerator::generateFull();
+                });
+                return Response::make($content)->header('Content-Type', 'text/plain; charset=utf-8');
             });
         }
 
