@@ -48,3 +48,6 @@
     - Auto-detects which blog plugin is installed; no configuration needed beyond URL prefix
     - Separate toggles for posts vs categories, configurable priority and change frequency
     - Cleared the legacy WordPress /blog/sitemap_index.xml default on External Blog Sitemap URL; existing installs keep their configured value
+1.2.1:
+    - Added an albrightlabs.sitemap.excludeUrl event so other plugins can veto a URL, for pages behind a release gate that redirect instead of returning 200
+    - Dynamic pages are now excluded on any URL parameter (:id, :hash, and others) rather than only :slug, so parameterised routes no longer emit literal template URLs

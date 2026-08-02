@@ -2,6 +2,7 @@
 
 use Route;
 use Cache;
+use Event;
 use Response;
 use Cms\Classes\Page;
 use System\Classes\PluginBase;
@@ -69,6 +70,16 @@ class Plugin extends PluginBase
                     }
                 }
 
+                // Let other plugins veto a URL (e.g. pages behind a release gate
+                // that redirect instead of returning 200). Any listener that
+                // returns true removes the URL from the sitemap.
+                $vetoes = Event::fire('albrightlabs.sitemap.excludeUrl', [$url]);
+                foreach ((array) $vetoes as $veto) {
+                    if ($veto === true) {
+                        return true;
+                    }
+                }
+
                 return false;
             };
 
@@ -127,8 +138,9 @@ class Plugin extends PluginBase
                         continue;
                     }
 
-                    // exclude dynamic pages and URLs matching exclusion patterns
-                    if (str_contains($page->url, ':slug') || $shouldExcludeUrl($page->url)) {
+                    // exclude dynamic pages (any URL parameter, e.g. :slug, :id,
+                    // :hash) and URLs matching exclusion patterns
+                    if (str_contains($page->url, ':') || $shouldExcludeUrl($page->url)) {
                         continue;
                     }
 
