@@ -331,7 +331,11 @@ class Plugin extends PluginBase
                 }
 
                 // Add Tailor section entries if configured
-                $tailorSections = Setting::get('tailor_sections', []);
+                // Cast rather than rely on the Setting::get default: clearing the
+                // repeater in the backend stores null, and the default only
+                // applies when the key is absent, so a cleared list would
+                // otherwise reach foreach() as null and 500 the whole sitemap.
+                $tailorSections = (array) Setting::get('tailor_sections', []);
                 foreach ($tailorSections as $config) {
                     if (empty($config['section_handle']) || empty($config['url_prefix'])) {
                         continue;

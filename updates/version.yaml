@@ -51,3 +51,5 @@
 1.2.1:
     - Added an albrightlabs.sitemap.excludeUrl event so other plugins can veto a URL, for pages behind a release gate that redirect instead of returning 200
     - Dynamic pages are now excluded on any URL parameter (:id, :hash, and others) rather than only :slug, so parameterised routes no longer emit literal template URLs
+1.2.2:
+    - "Fixed a 500 on sitemap_pages.xml when the Tailor Sections list is cleared in the backend. Clearing the repeater stores null, and Setting::get's default only applies when the key is absent, so the cleared value reached foreach() as null and took down the whole sitemap. The value is now cast to an array."
