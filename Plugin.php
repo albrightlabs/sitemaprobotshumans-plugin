@@ -39,6 +39,31 @@ class Plugin extends PluginBase
     }
 
     /**
+     * Read a setting as a string, falling back to $default when the stored
+     * value is null as well as when the key is absent.
+     *
+     * Setting::get only applies its default when the key is missing. Clearing
+     * a field in the backend stores null against the key, so the default never
+     * applies and the null travels on into rtrim(), e() and string
+     * concatenation. Under PHP 8.1+ each of those raises a deprecation, and the
+     * output gets an empty value where a path or a priority belonged.
+     *
+     * Same root cause as the tailor_sections fatal fixed in 1.2.2, in its
+     * non-fatal form. Routing every string-valued setting through here means
+     * the next setting added does not reintroduce it.
+     *
+     * self:: resolves lexically at compile time, so this is safe to call from
+     * the route closures below even though Laravel rebinds them when
+     * dispatching.
+     */
+    protected static function settingString(string $key, string $default = ''): string
+    {
+        $value = Setting::get($key, $default);
+
+        return $value === null ? $default : (string) $value;
+    }
+
+    /**
      * boot method, called right before the request route.
      */
     public function boot()
@@ -60,7 +85,7 @@ class Plugin extends PluginBase
                 }
 
                 // Check user-defined exclusions
-                $excludedUrls = Setting::get('excluded_urls', '');
+                $excludedUrls = self::settingString('excluded_urls');
                 if (!empty($excludedUrls)) {
                     $patterns = array_filter(array_map('trim', explode("\n", $excludedUrls)));
                     foreach ($patterns as $pattern) {
@@ -86,7 +111,7 @@ class Plugin extends PluginBase
             // /sitemap.xml - Sitemap INDEX referencing child sitemaps
             Route::get('/sitemap.xml', function () {
                 $path = url('/');
-                $blogSitemapUrl = Setting::get('blog_sitemap_url', '/blog/sitemap_index.xml');
+                $blogSitemapUrl = self::settingString('blog_sitemap_url', '/blog/sitemap_index.xml');
 
                 $sitemap = '<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -266,9 +291,9 @@ class Plugin extends PluginBase
                     }
 
                     if ($blogPostModel && class_exists($blogPostModel)) {
-                        $postPrefix = Setting::get('blog_post_url_prefix', '/blog');
-                        $priority = Setting::get('blog_priority', '0.6');
-                        $changefreq = Setting::get('blog_changefreq', 'weekly');
+                        $postPrefix = self::settingString('blog_post_url_prefix', '/blog');
+                        $priority = self::settingString('blog_priority', '0.6');
+                        $changefreq = self::settingString('blog_changefreq', 'weekly');
 
                         try {
                             $posts = $blogPostModel::where('published', 1)->get();
@@ -298,7 +323,7 @@ class Plugin extends PluginBase
                         }
 
                         if (Setting::get('enable_blog_categories', false) && $blogCategoryModel && class_exists($blogCategoryModel)) {
-                            $categoryPrefix = Setting::get('blog_category_url_prefix', '/blog/category');
+                            $categoryPrefix = self::settingString('blog_category_url_prefix', '/blog/category');
 
                             try {
                                 $categories = $blogCategoryModel::all();
@@ -383,7 +408,7 @@ class Plugin extends PluginBase
         if (Setting::get('enable_robots', false)) {
             Route::get('robots.txt', function () {
                 $content = "User-agent: *\r\n";
-                $content .= e(Setting::get('robots_content', ''));
+                $content .= e(self::settingString('robots_content'));
                 return Response::make($content)->header('Content-Type', 'text/plain');
             });
         }
@@ -391,7 +416,7 @@ class Plugin extends PluginBase
         // generates and returns a humans.txt file, if enabled
         if (Setting::get('enable_humans', false)) {
             Route::get('humans.txt', function () {
-                $content = e(Setting::get('humans_content', ''));
+                $content = e(self::settingString('humans_content'));
                 return Response::make($content)->header('Content-Type', 'text/plain');
             });
         }

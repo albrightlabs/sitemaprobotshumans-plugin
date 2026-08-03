@@ -53,3 +53,5 @@
     - Dynamic pages are now excluded on any URL parameter (:id, :hash, and others) rather than only :slug, so parameterised routes no longer emit literal template URLs
 1.2.2:
     - "Fixed a 500 on sitemap_pages.xml when the Tailor Sections list is cleared in the backend. Clearing the repeater stores null, and Setting::get's default only applies when the key is absent, so the cleared value reached foreach() as null and took down the whole sitemap. The value is now cast to an array."
+1.2.3:
+    - "Read every string-valued setting through a settingString() helper that falls back to the default on null as well as on absence. Setting::get only applies its default when the key is missing, so clearing a field in the backend stores null against it. The concrete bug this closes is rtrim() on the blog post and category URL prefixes, which raises a PHP 8.1+ deprecation and emits a malformed URL when either prefix is cleared on an install that has a blog plugin. robots.txt and humans.txt were already safe, since Laravel e() coalesces null internally. Same root cause as the 1.2.2 fatal, caught across the remaining settings so the next one added does not reintroduce it."
