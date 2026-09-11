@@ -31,7 +31,7 @@ tabs:
                 action: show
         include_optional_param_pages:
             label: Include pages with optional URL parameters
-            description: When checked, theme pages whose URL parameters are all optional (e.g. /cars/:path?) are listed at their base URL (/cars). Pages with a required parameter (e.g. /blog/:slug) are always left out.
+            description: When checked, pages whose URL parameters are all optional (e.g. /docs/:page?) are listed at their base URL.
             type: checkbox
             default: true
             tab: Sitemap
@@ -95,7 +95,7 @@ tabs:
                             yearly: Yearly
         theme_content_folders:
             label: Theme Content Folders
-            commentAbove: List content files from a theme content folder (managed in the CMS Editor) at a URL prefix. Use this when a wildcard page serves those files, e.g. /cars/:path? rendering content/cars.
+            commentAbove: Configure which theme content folders to include in the sitemap
             type: repeater
             tab: Sitemap
             cssClass: field-indent
@@ -112,7 +112,7 @@ tabs:
                     url_prefix:
                         label: URL Prefix
                         type: text
-                        placeholder: /cars
+                        placeholder: /docs
                         span: right
                     keep_extension:
                         label: Include file extension in URL
