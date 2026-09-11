@@ -72,6 +72,57 @@ class Plugin extends PluginBase
         // generates and returns sitemap index and pages sitemap, if enabled
         if (Setting::get('enable_sitemap', false)) {
 
+            // Adds a Sitemap tab to the page settings in the CMS Editor, so theme
+            // pages get the same per-page control as RainLab.Pages. The values are
+            // written to the page's INI settings under the same keys the sitemap
+            // route below already reads (enabled_in_sitemap, priority, changefreq),
+            // so hand-edited pages and Editor-managed pages behave identically.
+            Event::listen('cms.template.extendTemplateSettingsFields', function ($extension, $dataHolder) {
+                if ($dataHolder->templateType !== 'page') {
+                    return;
+                }
+
+                $dataHolder->settings[] = [
+                    'property' => 'enabled_in_sitemap',
+                    'title' => 'Include in sitemap',
+                    'description' => 'Uncheck to leave this page out of sitemap_pages.xml. Hidden pages and pages with URL parameters are always left out.',
+                    'type' => 'checkbox',
+                    'default' => true,
+                    'showExternalParam' => false,
+                    'tab' => 'Sitemap',
+                ];
+                $dataHolder->settings[] = [
+                    'property' => 'priority',
+                    'title' => 'Sitemap priority',
+                    'type' => 'dropdown',
+                    'default' => '0.5',
+                    'showExternalParam' => false,
+                    'tab' => 'Sitemap',
+                    'options' => [
+                        '1.0' => '1.0 (Highest)',
+                        '0.8' => '0.8',
+                        '0.6' => '0.6',
+                        '0.5' => '0.5 (Default)',
+                        '0.4' => '0.4',
+                        '0.2' => '0.2 (Lowest)',
+                    ],
+                ];
+                $dataHolder->settings[] = [
+                    'property' => 'changefreq',
+                    'title' => 'Sitemap change frequency',
+                    'type' => 'dropdown',
+                    'default' => 'monthly',
+                    'showExternalParam' => false,
+                    'tab' => 'Sitemap',
+                    'options' => [
+                        'daily' => 'Daily',
+                        'weekly' => 'Weekly',
+                        'monthly' => 'Monthly (Default)',
+                        'yearly' => 'Yearly',
+                    ],
+                ];
+            });
+
             // Helper function to check if URL should be excluded
             $shouldExcludeUrl = function($url) {
                 // Default keywords to exclude

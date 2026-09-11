@@ -258,3 +258,7 @@ tabs:
             default: 3600
             tab: LLMs-full.txt
             cssClass: field-indent
+            trigger:
+                field: enable_llms_full
+                condition: checked
+                action: show
