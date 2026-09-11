@@ -64,6 +64,39 @@ class Plugin extends PluginBase
     }
 
     /**
+     * Return the URL a page answers at when all of its parameters are left
+     * out, or null when it has no such URL.
+     *
+     * October marks a parameter optional with ? after its name (/:path?,
+     * /:path?home, /:id?|^[0-9]+$), and only trailing parameters can be
+     * optional. A required parameter, including a wildcard like :slug*, means
+     * the page needs a value to render, so there is nothing to list.
+     */
+    protected static function optionalParamBaseUrl(string $url): ?string
+    {
+        $base = [];
+        $inParams = false;
+
+        foreach (explode('/', trim($url, '/')) as $segment) {
+            if (!str_starts_with($segment, ':')) {
+                if ($inParams) {
+                    return null;
+                }
+                $base[] = $segment;
+                continue;
+            }
+
+            $inParams = true;
+            $name = explode('|', $segment, 2)[0];
+            if (!str_contains($name, '?')) {
+                return null;
+            }
+        }
+
+        return '/' . implode('/', $base);
+    }
+
+    /**
      * boot method, called right before the request route.
      */
     public function boot()
@@ -85,7 +118,7 @@ class Plugin extends PluginBase
                 $dataHolder->settings[] = [
                     'property' => 'enabled_in_sitemap',
                     'title' => 'Include in sitemap',
-                    'description' => 'Uncheck to leave this page out of sitemap_pages.xml. Hidden pages and pages with URL parameters are always left out.',
+                    'description' => 'Uncheck to leave this page out of sitemap_pages.xml. Hidden pages are always left out. Pages with URL parameters are listed at their base URL when every parameter is optional, and left out otherwise.',
                     'type' => 'checkbox',
                     'default' => true,
                     'showExternalParam' => false,
@@ -201,6 +234,10 @@ class Plugin extends PluginBase
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">';
 
+                // theme URLs already written, so a wildcard page's base URL or a
+                // content file cannot be listed twice
+                $emittedUrls = [];
+
                 // adds each CMS page to sitemap
                 foreach ($pages as $page) {
 
@@ -214,18 +251,30 @@ class Plugin extends PluginBase
                         continue;
                     }
 
-                    // exclude dynamic pages (any URL parameter, e.g. :slug, :id,
-                    // :hash) and URLs matching exclusion patterns
-                    if (str_contains($page->url, ':') || $shouldExcludeUrl($page->url)) {
+                    // Pages with URL parameters (:slug, :id, :hash) have no single
+                    // URL to list. When every parameter is optional, e.g.
+                    // /cars/:path?home, the page also answers at its base URL
+                    // (/cars), so list that instead.
+                    $pageUrl = $page->url;
+                    if (str_contains($pageUrl, ':')) {
+                        $pageUrl = Setting::get('include_optional_param_pages', true)
+                            ? self::optionalParamBaseUrl($pageUrl)
+                            : null;
+                    }
+
+                    // exclude pages with required parameters, duplicates, and URLs
+                    // matching exclusion patterns
+                    if ($pageUrl === null || isset($emittedUrls[$pageUrl]) || $shouldExcludeUrl($pageUrl)) {
                         continue;
                     }
+                    $emittedUrls[$pageUrl] = true;
 
                     // add page to sitemap
                     $changefreq = $page->changefreq ?? 'monthly';
                     $priority = $page->priority ?? '0.5';
                     $sitemap .= '
     <url>
-        <loc>' . htmlspecialchars($path . $page->url, ENT_XML1, 'UTF-8') . '</loc>
+        <loc>' . htmlspecialchars($path . $pageUrl, ENT_XML1, 'UTF-8') . '</loc>
         <lastmod>' . date("Y-m-d", $page->mtime) . '</lastmod>
         <changefreq>' . htmlspecialchars($changefreq, ENT_XML1, 'UTF-8') . '</changefreq>
         <priority>' . htmlspecialchars($priority, ENT_XML1, 'UTF-8') . '</priority>
@@ -443,6 +492,57 @@ class Plugin extends PluginBase
                         }
                     } catch (\Exception $e) {
                         // Section not found or Tailor unavailable - skip silently
+                    }
+                }
+
+                // Add theme content files from configured folders. Covers themes
+                // that serve Editor-managed content files through a wildcard page,
+                // such as /cars/:path? rendering content/cars/*.htm. Cast for the
+                // same reason as tailor_sections above.
+                $contentFolders = (array) Setting::get('theme_content_folders', []);
+                if ($contentFolders) {
+                    try {
+                        $contentFiles = \Cms\Classes\Content::listInTheme(\Cms\Classes\Theme::getActiveTheme(), true);
+                    } catch (\Throwable $e) {
+                        // No active theme - skip silently
+                        $contentFiles = [];
+                    }
+
+                    foreach ($contentFolders as $config) {
+                        $folder = trim((string) ($config['content_folder'] ?? ''), '/');
+                        if ($folder === '' || empty($config['url_prefix'])) {
+                            continue;
+                        }
+
+                        foreach ($contentFiles as $contentFile) {
+                            $fileName = $contentFile->getFileName();
+                            if (!str_starts_with($fileName, $folder . '/')) {
+                                continue;
+                            }
+
+                            $slug = substr($fileName, strlen($folder) + 1);
+                            if (empty($config['keep_extension'])) {
+                                $slug = preg_replace('/\.[^.\/]+$/', '', $slug);
+                            }
+                            $slug = implode('/', array_map('rawurlencode', explode('/', $slug)));
+                            $pageUrl = rtrim($config['url_prefix'], '/') . '/' . $slug;
+
+                            if (isset($emittedUrls[$pageUrl]) || $shouldExcludeUrl($pageUrl)) {
+                                continue;
+                            }
+                            $emittedUrls[$pageUrl] = true;
+
+                            $priority = $config['priority'] ?? '0.5';
+                            $changefreq = $config['changefreq'] ?? 'monthly';
+
+                            $sitemap .= '
+    <url>
+        <loc>' . htmlspecialchars($path . $pageUrl, ENT_XML1, 'UTF-8') . '</loc>
+        <lastmod>' . date("Y-m-d", $contentFile->mtime ?: time()) . '</lastmod>
+        <changefreq>' . htmlspecialchars($changefreq, ENT_XML1, 'UTF-8') . '</changefreq>
+        <priority>' . htmlspecialchars($priority, ENT_XML1, 'UTF-8') . '</priority>
+    </url>';
+                        }
                     }
                 }
 

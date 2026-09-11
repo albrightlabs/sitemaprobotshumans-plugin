@@ -56,4 +56,26 @@ class Setting extends Model
         }
         return $options;
     }
+
+    /**
+     * Get the active theme's content folders for dropdown
+     */
+    public function getContentFolderOptions()
+    {
+        $options = [];
+        try {
+            $files = \Cms\Classes\Content::listInTheme(\Cms\Classes\Theme::getActiveTheme(), true);
+            foreach ($files as $file) {
+                $dir = dirname($file->getFileName());
+                while ($dir !== '.' && $dir !== '') {
+                    $options[$dir] = $dir;
+                    $dir = dirname($dir);
+                }
+            }
+        } catch (\Throwable $e) {
+            // No active theme
+        }
+        ksort($options);
+        return $options;
+    }
 }

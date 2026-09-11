@@ -58,3 +58,6 @@
 1.3.0:
     - "Added a Sitemap tab to page settings in the CMS Editor with Include in sitemap, priority, and change frequency controls for theme pages. The values are stored as the enabled_in_sitemap, priority, and changefreq page settings the sitemap already reads, so existing pages keep their current behaviour."
     - "The Cache TTL field on the LLMs-full.txt settings tab is now only shown when llms-full.txt is enabled."
+1.4.0:
+    - "Theme pages whose URL parameters are all optional (e.g. /cars/:path?) are now listed in the sitemap at their base URL (/cars) instead of being skipped. Pages with a required parameter are still left out. Controlled by the new Include pages with optional URL parameters setting, on by default."
+    - "Added a Theme Content Folders repeater to the Sitemap tab. Each entry lists the content files in a theme content folder (as managed in the CMS Editor) at a URL prefix, with optional file extension, priority, and change frequency. For themes that serve content files through a wildcard page."

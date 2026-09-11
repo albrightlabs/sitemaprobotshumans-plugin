@@ -14,7 +14,8 @@ Generates the discovery files a website needs, all managed from Settings > Sitem
 Each file can be enabled or disabled independently from its own settings tab.
 
 ### 🗺️ What goes into the sitemap
-- **CMS theme pages**: every page in the active theme, including pages created in the backend CMS Editor. Hidden pages and pages with URL parameters (e.g. `/blog/:slug`) are left out.
+- **CMS theme pages**: every page in the active theme, including pages created in the backend CMS Editor. Hidden pages are left out. Pages whose URL parameters are all optional (e.g. `/cars/:path?`) are listed at their base URL (`/cars`); pages with a required parameter (e.g. `/blog/:slug`) are left out.
+- **Theme content files**: files in a theme's `content` folders, as managed in the CMS Editor. Add a folder under **Theme Content Folders** with the URL prefix its files are served at, e.g. `cars` at `/cars` lists `content/cars/accord.htm` as `/cars/accord` (or `/cars/accord.htm` with **Include file extension in URL** checked).
 - **RainLab.Pages**: static pages, when the plugin is installed and the option is enabled.
 - **OFFLINE.Boxes**: published Boxes pages, when the plugin is installed and the option is enabled.
 - **RainLab.Blog / AlbrightLabs.Blog**: published posts, and optionally categories, using a configurable URL prefix. The installed blog plugin is detected automatically.

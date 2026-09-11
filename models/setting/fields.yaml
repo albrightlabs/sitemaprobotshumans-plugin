@@ -29,6 +29,17 @@ tabs:
                 field: enable_sitemap
                 condition: checked
                 action: show
+        include_optional_param_pages:
+            label: Include pages with optional URL parameters
+            description: When checked, theme pages whose URL parameters are all optional (e.g. /cars/:path?) are listed at their base URL (/cars). Pages with a required parameter (e.g. /blog/:slug) are always left out.
+            type: checkbox
+            default: true
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_sitemap
+                condition: checked
+                action: show
         blog_sitemap_url:
             label: External Blog Sitemap URL
             description: Only needed if your blog runs on a separate platform (e.g. WordPress) that produces its own sitemap. Leave empty in most cases - the options below generate blog URLs natively.
@@ -70,6 +81,53 @@ tabs:
                             '1.0': '1.0 (Highest)'
                             '0.8': '0.8'
                             '0.6': '0.6 (Default)'
+                            '0.4': '0.4'
+                            '0.2': '0.2 (Lowest)'
+                    changefreq:
+                        label: Change Frequency
+                        type: dropdown
+                        default: monthly
+                        span: right
+                        options:
+                            daily: Daily
+                            weekly: Weekly
+                            monthly: Monthly
+                            yearly: Yearly
+        theme_content_folders:
+            label: Theme Content Folders
+            commentAbove: List content files from a theme content folder (managed in the CMS Editor) at a URL prefix. Use this when a wildcard page serves those files, e.g. /cars/:path? rendering content/cars.
+            type: repeater
+            tab: Sitemap
+            cssClass: field-indent
+            trigger:
+                field: enable_sitemap
+                condition: checked
+                action: show
+            form:
+                fields:
+                    content_folder:
+                        label: Content folder
+                        type: dropdown
+                        span: left
+                    url_prefix:
+                        label: URL Prefix
+                        type: text
+                        placeholder: /cars
+                        span: right
+                    keep_extension:
+                        label: Include file extension in URL
+                        comment: Check if files are served at /prefix/file.htm rather than /prefix/file.
+                        type: checkbox
+                    priority:
+                        label: Priority
+                        type: dropdown
+                        default: '0.5'
+                        span: left
+                        options:
+                            '1.0': '1.0 (Highest)'
+                            '0.8': '0.8'
+                            '0.6': '0.6'
+                            '0.5': '0.5 (Default)'
                             '0.4': '0.4'
                             '0.2': '0.2 (Lowest)'
                     changefreq:
