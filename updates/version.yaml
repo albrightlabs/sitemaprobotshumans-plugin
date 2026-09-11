@@ -61,3 +61,5 @@
 1.4.0:
     - "Theme pages whose URL parameters are all optional (e.g. /cars/:path?) are now listed in the sitemap at their base URL (/cars) instead of being skipped. Pages with a required parameter are still left out. Controlled by the new Include pages with optional URL parameters setting, on by default."
     - "Added a Theme Content Folders repeater to the Sitemap tab. Each entry lists the content files in a theme content folder (as managed in the CMS Editor) at a URL prefix, with optional file extension, priority, and change frequency. For themes that serve content files through a wildcard page."
+1.4.1:
+    - "Fixed an empty sitemap_pages.xml, llms.txt and llms-full.txt on October CMS installs where the theme is set on the site definition (chosen in the backend) rather than ACTIVE_THEME. October applies the site definition's theme only inside the CMS controller, so the plugin's routes listed pages from the config fallback theme, usually demo, and found none. The routes now apply the site matching the request before building their output, the same way the CMS controller does, so they use the same theme as the site's pages."

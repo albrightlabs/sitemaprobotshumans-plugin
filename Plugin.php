@@ -64,6 +64,38 @@ class Plugin extends PluginBase
     }
 
     /**
+     * Register a GET route that runs with the site matching the request active.
+     *
+     * October only applies the active site, and with it the site definition's
+     * theme, inside CmsController. Plugin routes never pass through it, so
+     * without this Page::all() lists whatever cms.active_theme holds in config.
+     * On an install whose theme was chosen in the backend (stored on the site
+     * definition) and ACTIVE_THEME is unset, that is the "demo" fallback, and
+     * the sitemap and llms.txt came back empty with no error.
+     *
+     * This applies the site the same way CmsController does, rather than through
+     * October's ActiveSite middleware, which passes a null path to trim() when
+     * the app URL has no path and logs a deprecation on every request. Installs
+     * older than site definitions (October 3.5) have no system.sites binding and
+     * only the config value, so there is nothing to apply.
+     */
+    protected static function siteRoute(string $uri, \Closure $action)
+    {
+        return Route::get($uri, function () use ($action) {
+            if (app()->bound('system.sites')) {
+                $sites = app('system.sites');
+                $site = $sites->getSiteFromRequest(request()->root(), request()->path());
+
+                if ($site && $site->is_enabled) {
+                    $sites->applyActiveSite($site);
+                }
+            }
+
+            return $action();
+        });
+    }
+
+    /**
      * Return the URL a page answers at when all of its parameters are left
      * out, or null when it has no such URL.
      *
@@ -193,7 +225,7 @@ class Plugin extends PluginBase
             };
 
             // /sitemap.xml - Sitemap INDEX referencing child sitemaps
-            Route::get('/sitemap.xml', function () {
+            self::siteRoute('/sitemap.xml', function () {
                 $path = url('/');
                 $blogSitemapUrl = self::settingString('blog_sitemap_url', '/blog/sitemap_index.xml');
 
@@ -220,7 +252,7 @@ class Plugin extends PluginBase
             });
 
             // /sitemap_pages.xml - Pages urlset with all CMS pages
-            Route::get('/sitemap_pages.xml', function () use ($shouldExcludeUrl) {
+            self::siteRoute('/sitemap_pages.xml', function () use ($shouldExcludeUrl) {
 
                 // retrieve website base url
                 $path = url('/');
@@ -557,7 +589,7 @@ class Plugin extends PluginBase
 
         // generates and returns a robots.txt file, if enabled
         if (Setting::get('enable_robots', false)) {
-            Route::get('robots.txt', function () {
+            self::siteRoute('robots.txt', function () {
                 $content = "User-agent: *\r\n";
                 $content .= e(self::settingString('robots_content'));
                 return Response::make($content)->header('Content-Type', 'text/plain');
@@ -566,7 +598,7 @@ class Plugin extends PluginBase
 
         // generates and returns a humans.txt file, if enabled
         if (Setting::get('enable_humans', false)) {
-            Route::get('humans.txt', function () {
+            self::siteRoute('humans.txt', function () {
                 $content = e(self::settingString('humans_content'));
                 return Response::make($content)->header('Content-Type', 'text/plain');
             });
@@ -574,7 +606,7 @@ class Plugin extends PluginBase
 
         // generates and returns /llms.txt — a curated markdown index for AI discovery
         if (Setting::get('enable_llms', false)) {
-            Route::get('/llms.txt', function () {
+            self::siteRoute('/llms.txt', function () {
                 $ttl = (int) Setting::get('llms_cache_ttl', 3600);
                 $content = Cache::remember('llms_txt_index', $ttl, function () {
                     return \Albrightlabs\SitemapRobotsHumans\Classes\LlmsGenerator::generateIndex();
@@ -585,7 +617,7 @@ class Plugin extends PluginBase
 
         // generates and returns /llms-full.txt — full page content as markdown
         if (Setting::get('enable_llms_full', false)) {
-            Route::get('/llms-full.txt', function () {
+            self::siteRoute('/llms-full.txt', function () {
                 $ttl = (int) Setting::get('llms_cache_ttl', 3600);
                 $content = Cache::remember('llms_txt_full', $ttl, function () {
                     return \Albrightlabs\SitemapRobotsHumans\Classes\LlmsGenerator::generateFull();
