@@ -52,7 +52,37 @@ Event::listen('albrightlabs.sitemap.excludeUrl', function ($url) {
 ### 🤖 llms.txt and llms-full.txt
 - Pages are opted in by adding `enabled_in_llms = 1` to their settings section.
 - **llms.txt** can include a summary blockquote and group links into sections by URL prefix.
-- **llms-full.txt** extracts each page's main content using a configurable CSS selector (default `main`). The **Cache TTL** field controls how long generated output is cached; it is shown on the LLMs-full.txt tab when llms-full.txt is enabled, and also applies to llms.txt.
+- **llms-full.txt** renders each page on the server and extracts its main content using a configurable CSS selector (default `main`). JavaScript is not run, so text inserted in the browser is not included; use the events below to supply that content from CMS data instead. The **Cache TTL** field controls how long generated output is cached; it is shown on the LLMs-full.txt tab when llms-full.txt is enabled, and also applies to llms.txt.
+- Both files are generated and cached per site, and pages render in the site's locale.
+
+### 🔌 Supplying llms.txt content from CMS data
+Listen for `albrightlabs.llms.pageContent` to supply the markdown for a page instead of rendering it. Return `null` to render the page as usual, or an empty string to leave it out of llms-full.txt:
+
+```php
+Event::listen('albrightlabs.llms.pageContent', function ($page) {
+    if ($page->getBaseFileName() === 'about') {
+        return "# About us\n\nContent built from CMS data.";
+    }
+});
+```
+
+Listen for `albrightlabs.llms.extraEntries` to add entries that aren't theme pages, such as Tailor entries. Return a list of entries, each with a `title` and `url`, plus an optional `description` (shown in llms.txt) and markdown `content` (shown in llms-full.txt). Entries are grouped by URL prefix and sorted with the pages:
+
+```php
+use Albrightlabs\SitemapRobotsHumans\Classes\LlmsGenerator;
+use Tailor\Models\EntryRecord;
+
+Event::listen('albrightlabs.llms.extraEntries', function () {
+    return EntryRecord::inSection('Blog\Post')->get()->map(fn ($post) => [
+        'title' => $post->title,
+        'url' => '/blog/' . $post->slug,
+        'description' => $post->excerpt,
+        'content' => LlmsGenerator::htmlToMarkdown($post->content),
+    ])->all();
+});
+```
+
+`LlmsGenerator::htmlToMarkdown()` converts HTML, such as a rich editor field, to markdown the same way page content is converted.
 
 ### 🧩 Sitemap component
 The `sitemap` component renders a human-readable, hierarchical list of your theme pages for use on an HTML sitemap page.

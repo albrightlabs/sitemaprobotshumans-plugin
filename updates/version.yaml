@@ -65,3 +65,9 @@
     - "Fixed an empty sitemap_pages.xml, llms.txt and llms-full.txt on October CMS installs where the theme is set on the site definition (chosen in the backend) rather than ACTIVE_THEME. October applies the site definition's theme only inside the CMS controller, so the plugin's routes listed pages from the config fallback theme, usually demo, and found none. The routes now apply the site matching the request before building their output, the same way the CMS controller does, so they use the same theme as the site's pages."
 1.4.2:
     - "Shortened the Theme Content Folders and Include pages with optional URL parameters helper text on the Sitemap settings tab to match the other settings, with generic examples."
+1.5.0:
+    - "Added the albrightlabs.llms.pageContent event. Listeners can supply the markdown for a page in llms-full.txt instead of the plugin rendering it, for sites whose text is rendered in the browser and so is missing from the server-rendered HTML. Returning null renders the page as before; returning an empty string leaves it out."
+    - "Added the albrightlabs.llms.extraEntries event. Listeners can add entries that aren't theme pages, such as Tailor entries, to llms.txt and llms-full.txt, each with a title, URL, and optional description and markdown content."
+    - "Added LlmsGenerator::htmlToMarkdown() so listeners can convert HTML, such as rich editor fields, to markdown the same way page content is converted."
+    - "llms-full.txt now renders pages in the site's locale. It previously forced English while rendering, so a non-English site got English translation strings in its output."
+    - "llms.txt and llms-full.txt are now cached per site. Since 1.4.1 each site generates its own output, but the shared cache key served whichever site was generated first to every site until the cache TTL expired."

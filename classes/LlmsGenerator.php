@@ -1,7 +1,7 @@
 <?php namespace Albrightlabs\SitemapRobotsHumans\Classes;
 
-use App;
 use Log;
+use Event;
 use Config;
 use Cms\Classes\Page;
 use Cms\Classes\Theme;
@@ -28,26 +28,23 @@ class LlmsGenerator
         $summary = trim((string) Setting::get('llms_summary', ''));
         $sections = Setting::get('llms_sections', []) ?: [];
 
-        $pages = static::eligiblePages();
-        $grouped = static::groupPages($pages, $sections);
+        $grouped = static::groupEntries(static::entries(), $sections);
 
         $out = "# {$siteTitle}\n\n";
         if ($summary !== '') {
             $out .= "> {$summary}\n\n";
         }
 
-        foreach ($grouped as $label => $pageList) {
-            if (empty($pageList)) {
+        foreach ($grouped as $label => $entryList) {
+            if (empty($entryList)) {
                 continue;
             }
             $out .= "## {$label}\n\n";
-            foreach ($pageList as $page) {
-                $title = static::pageTitle($page);
-                $desc = static::pageDescription($page);
-                $url = $baseUrl . $page->url;
-                $out .= $desc !== ''
-                    ? "- [{$title}]({$url}): {$desc}\n"
-                    : "- [{$title}]({$url})\n";
+            foreach ($entryList as $entry) {
+                $url = static::absoluteUrl($baseUrl, $entry['url']);
+                $out .= $entry['description'] !== ''
+                    ? "- [{$entry['title']}]({$url}): {$entry['description']}\n"
+                    : "- [{$entry['title']}]({$url})\n";
             }
             $out .= "\n";
         }
@@ -55,59 +52,95 @@ class LlmsGenerator
         return rtrim($out) . "\n";
     }
 
+    /**
+     * Pages render in the locale of the site the request matched, which the
+     * route applies before calling this. Before 1.5.0 this forced 'en', so a
+     * non-English site got English translation strings in its output.
+     */
     public static function generateFull(): string
     {
         $baseUrl = rtrim(url('/'), '/');
         $siteTitle = static::siteTitle();
         $selector = trim((string) Setting::get('llms_full_content_selector', 'main')) ?: 'main';
 
-        $converter = new HtmlConverter([
+        $converter = static::converter();
+
+        $theme = Theme::getActiveTheme();
+        $controller = new Controller($theme);
+
+        $out = "# {$siteTitle}\n\n";
+
+        foreach (static::entries() as $entry) {
+            try {
+                $markdown = $entry['page']
+                    ? static::pageMarkdown($entry['page'], $controller, $converter, $selector)
+                    : $entry['content'];
+                if ($markdown === '') {
+                    continue;
+                }
+
+                $url = static::absoluteUrl($baseUrl, $entry['url']);
+
+                $out .= "## {$entry['title']}\n\n";
+                $out .= "{$url}\n\n";
+                $out .= $markdown . "\n\n---\n\n";
+            } catch (\Throwable $e) {
+                $name = $entry['page'] ? 'page ' . $entry['page']->getBaseFileName() : 'entry ' . $entry['url'];
+                Log::warning('llms-full.txt render failed for ' . $name . ': ' . $e->getMessage());
+                continue;
+            }
+        }
+
+        return rtrim($out) . "\n";
+    }
+
+    /**
+     * Convert an HTML fragment to markdown the same way page content is
+     * converted. For albrightlabs.llms.pageContent and
+     * albrightlabs.llms.extraEntries listeners whose content is stored as
+     * HTML, such as rich editor fields.
+     */
+    public static function htmlToMarkdown(?string $html): string
+    {
+        if ($html === null || trim($html) === '') {
+            return '';
+        }
+
+        return static::cleanMarkdown(static::converter()->convert($html));
+    }
+
+    protected static function converter(): HtmlConverter
+    {
+        return new HtmlConverter([
             'header_style' => 'atx',
             'strip_tags' => true,
             'strip_placeholder_links' => true,
             'remove_nodes' => 'script style noscript img svg picture source button form input select textarea iframe',
             'hard_break' => false,
         ]);
+    }
 
-        $theme = Theme::getActiveTheme();
-        $controller = new Controller($theme);
-
-        $originalLocale = App::getLocale();
-        App::setLocale('en');
-
-        $out = "# {$siteTitle}\n\n";
-
-        try {
-            foreach (static::eligiblePages() as $page) {
-                try {
-                    $response = $controller->render($page->getBaseFileName());
-                    $html = is_string($response) ? $response : (method_exists($response, 'getContent') ? $response->getContent() : '');
-                    $fragment = static::extractContent($html, $selector);
-                    if ($fragment === '') {
-                        continue;
-                    }
-                    $markdown = $converter->convert($fragment);
-                    $markdown = static::cleanMarkdown($markdown);
-                    if ($markdown === '') {
-                        continue;
-                    }
-
-                    $title = static::pageTitle($page);
-                    $url = $baseUrl . $page->url;
-
-                    $out .= "## {$title}\n\n";
-                    $out .= "{$url}\n\n";
-                    $out .= $markdown . "\n\n---\n\n";
-                } catch (\Throwable $e) {
-                    Log::warning('llms-full.txt render failed for page ' . $page->getBaseFileName() . ': ' . $e->getMessage());
-                    continue;
-                }
-            }
-        } finally {
-            App::setLocale($originalLocale);
+    /**
+     * Markdown for a theme page. A listener on albrightlabs.llms.pageContent
+     * can supply it, which lets sites whose text is rendered client-side
+     * build it from CMS data instead. Returning null renders the page as
+     * usual; returning '' leaves the page out of llms-full.txt.
+     */
+    protected static function pageMarkdown($page, Controller $controller, HtmlConverter $converter, string $selector): string
+    {
+        $supplied = Event::fire('albrightlabs.llms.pageContent', [$page], true);
+        if ($supplied !== null) {
+            return trim((string) $supplied);
         }
 
-        return rtrim($out) . "\n";
+        $response = $controller->render($page->getBaseFileName());
+        $html = is_string($response) ? $response : (method_exists($response, 'getContent') ? $response->getContent() : '');
+        $fragment = static::extractContent($html, $selector);
+        if ($fragment === '') {
+            return '';
+        }
+
+        return static::cleanMarkdown($converter->convert($fragment));
     }
 
     protected static function siteTitle(): string
@@ -137,7 +170,68 @@ class LlmsGenerator
         })->sortBy('url')->values();
     }
 
-    protected static function groupPages($pages, array $sections): array
+    /**
+     * Opted-in theme pages plus any entries supplied by listeners on
+     * albrightlabs.llms.extraEntries, sorted by URL. Each listener returns a
+     * list of arrays with a title and url, and optionally a description
+     * (shown in llms.txt) and markdown content (shown in llms-full.txt). This
+     * is how records that aren't theme pages, such as Tailor entries, are
+     * added.
+     */
+    protected static function entries(): array
+    {
+        $entries = [];
+
+        foreach (static::eligiblePages() as $page) {
+            $entries[] = [
+                'title' => static::pageTitle($page),
+                'url' => (string) $page->url,
+                'description' => static::pageDescription($page),
+                'content' => '',
+                'page' => $page,
+            ];
+        }
+
+        foreach ((array) Event::fire('albrightlabs.llms.extraEntries') as $result) {
+            foreach ((array) $result as $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+                $title = trim((string) ($entry['title'] ?? ''));
+                $url = trim((string) ($entry['url'] ?? ''));
+                if ($title === '' || $url === '') {
+                    continue;
+                }
+                if (!preg_match('#^https?://#i', $url)) {
+                    $url = '/' . ltrim($url, '/');
+                }
+                $entries[] = [
+                    'title' => $title,
+                    'url' => $url,
+                    'description' => trim((string) ($entry['description'] ?? '')),
+                    'content' => trim((string) ($entry['content'] ?? '')),
+                    'page' => null,
+                ];
+            }
+        }
+
+        return collect($entries)->sortBy('url')->values()->all();
+    }
+
+    /**
+     * Prefix a site-relative URL with the base URL. Full URLs supplied by
+     * extraEntries listeners are left as they are.
+     */
+    protected static function absoluteUrl(string $baseUrl, string $url): string
+    {
+        if (preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+
+        return $baseUrl . '/' . ltrim($url, '/');
+    }
+
+    protected static function groupEntries(array $entries, array $sections): array
     {
         $grouped = [];
         foreach ($sections as $section) {
@@ -153,7 +247,8 @@ class LlmsGenerator
             $grouped[$otherLabel] = [];
         }
 
-        foreach ($pages as $page) {
+        foreach ($entries as $entry) {
+            $path = parse_url($entry['url'], PHP_URL_PATH) ?: '/';
             $matched = false;
             foreach ($sections as $section) {
                 $label = trim((string) ($section['label'] ?? ''));
@@ -161,14 +256,14 @@ class LlmsGenerator
                 if ($label === '' || $prefix === '') {
                     continue;
                 }
-                if ($page->url === $prefix || str_starts_with($page->url ?? '', rtrim($prefix, '/') . '/')) {
-                    $grouped[$label][] = $page;
+                if ($path === $prefix || str_starts_with($path, rtrim($prefix, '/') . '/')) {
+                    $grouped[$label][] = $entry;
                     $matched = true;
                     break;
                 }
             }
             if (!$matched) {
-                $grouped[$otherLabel][] = $page;
+                $grouped[$otherLabel][] = $entry;
             }
         }
 

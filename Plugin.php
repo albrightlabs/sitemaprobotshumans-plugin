@@ -96,6 +96,25 @@ class Plugin extends PluginBase
     }
 
     /**
+     * Return a cache key scoped to the active site.
+     *
+     * siteRoute applies the site matching the request, so llms.txt and
+     * llms-full.txt are built from that site's theme, locale and URL. Under a
+     * single shared key, whichever site was requested first after the cache
+     * expired had its output served to every site until the TTL ran out.
+     * Installs older than site definitions have only one site, so the key is
+     * used as is.
+     */
+    protected static function siteCacheKey(string $key): string
+    {
+        if (app()->bound('system.sites') && ($site = app('system.sites')->getActiveSite())) {
+            return $key . '_site_' . $site->id;
+        }
+
+        return $key;
+    }
+
+    /**
      * Return the URL a page answers at when all of its parameters are left
      * out, or null when it has no such URL.
      *
@@ -608,7 +627,7 @@ class Plugin extends PluginBase
         if (Setting::get('enable_llms', false)) {
             self::siteRoute('/llms.txt', function () {
                 $ttl = (int) Setting::get('llms_cache_ttl', 3600);
-                $content = Cache::remember('llms_txt_index', $ttl, function () {
+                $content = Cache::remember(self::siteCacheKey('llms_txt_index'), $ttl, function () {
                     return \Albrightlabs\SitemapRobotsHumans\Classes\LlmsGenerator::generateIndex();
                 });
                 return Response::make($content)->header('Content-Type', 'text/plain; charset=utf-8');
@@ -619,7 +638,7 @@ class Plugin extends PluginBase
         if (Setting::get('enable_llms_full', false)) {
             self::siteRoute('/llms-full.txt', function () {
                 $ttl = (int) Setting::get('llms_cache_ttl', 3600);
-                $content = Cache::remember('llms_txt_full', $ttl, function () {
+                $content = Cache::remember(self::siteCacheKey('llms_txt_full'), $ttl, function () {
                     return \Albrightlabs\SitemapRobotsHumans\Classes\LlmsGenerator::generateFull();
                 });
                 return Response::make($content)->header('Content-Type', 'text/plain; charset=utf-8');
